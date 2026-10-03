@@ -50,6 +50,9 @@ importers:
       '@tanstack/react-start':
         specifier: 1.168.60
         version: 1.168.60(crossws@0.4.12(srvx@0.11.22))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(rolldown@1.2.12)(vite@8.3.2(@types/node@22.20.5)(jiti@2.7.0))
+      '@typesafe-ai/sdk':
+        specifier: ^0.6.0
+        version: 0.6.0
       class-variance-authority:
         specifier: ^0.7.1
         version: 0.7.1
@@ -1060,6 +1063,10 @@ packages:
 
   '@types/react@19.3.0':
     resolution: {integrity: sha512-N0rFCuH9YoxG9/m61l9MfpJKfmLOVU0em7ipIz6TRgSSkvReLB9vL85GB+yr8Bs5leqpvg96JSwF4ZS1s4viQg==}
+
+  '@typesafe-ai/sdk@0.6.0':
+    resolution: {integrity: sha512-IddX+Q0XM+VagOUZFeP7wZjaO4SHMdvnh2zEBdrZZnXedWI3BNK1lKhMx3ayrkFWvVLbVcUHJy6AVZlY+e6Jaw==}
+    engines: {node: '>=20'}
 
   '@vitejs/plugin-react@6.1.1':
     resolution: {integrity: sha512-yxLaQV9gkhS8ezJqCM6+ndU7mDY6gqAg75NQ+0IjwEI8IYOmQCgkRwHKVSfWXW076DsqMo0Dk+0FK1U+M5RgFw==}
@@ -3020,6 +3027,8 @@ snapshots:
   '@types/react@19.3.0':
     dependencies:
       csstype: 3.2.3
+
+  '@typesafe-ai/sdk@0.6.0': {}
 
   '@vitejs/plugin-react@6.1.1(vite@8.3.2(@types/node@22.20.5)(jiti@2.7.0))':
     dependencies:

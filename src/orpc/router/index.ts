@@ -1,6 +1,5 @@
-import { addTodo, listTodos } from './todos'
+import { evalSentences } from "./evals";
 
 export default {
-  listTodos,
-  addTodo,
-}
+  evalSentences,
+};
