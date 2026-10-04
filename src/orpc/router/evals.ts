@@ -6,12 +6,18 @@ export const evalSentences = os
   .input(
     z.object({
       sentences: z.array(z.object({ id: z.string(), text: z.string() })),
+      targetIds: z.array(z.string()),
     }),
   )
-  .handler(async ({ input: { sentences } }) => {
+  .handler(async ({ input: { sentences, targetIds } }) => {
+    const targets = sentences.filter(
+      ({ id }) => targetIds.length === 0 || targetIds.includes(id),
+    );
+    if (targets.length === 0) return [];
+
     const jev = new TypeSafeClient({ apiKey: process.env.JEV_API_KEY });
     const questions = Object.fromEntries(
-      sentences.map((sentence) => [
+      targets.map((sentence) => [
         sentence.id,
         score(
           `
@@ -28,7 +34,7 @@ export const evalSentences = os
       state: sentences,
       questions,
     });
-    return sentences.map((sentence) => ({
+    return targets.map((sentence) => ({
       id: sentence.id,
       text: sentence.text,
       score: Math.round(response.answers[sentence.id].score),

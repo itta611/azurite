@@ -2,8 +2,12 @@ import { type Editor, Extension } from "@tiptap/core";
 import type { Node } from "@tiptap/pm/model";
 import { Plugin, PluginKey } from "@tiptap/pm/state";
 import { Decoration, DecorationSet } from "@tiptap/pm/view";
+import {
+  type EvaluatedSentence,
+  reconcileSentences,
+} from "./sentence-evaluations";
 
-interface Sentence {
+export interface Sentence {
   id: string;
   text: string;
   from: number;
@@ -34,48 +38,94 @@ export function getSentences(doc: Node) {
   return sentences;
 }
 
-const highlightsKey = new PluginKey<DecorationSet>("sentenceHighlights");
+type SentenceEvaluation = Pick<Sentence, "id" | "text"> & { score: number };
 
-export function setSentenceHighlights(
+interface SentenceState {
+  sentences: EvaluatedSentence[];
+  changed: Sentence[];
+  decorations: DecorationSet;
+}
+
+const highlightsKey = new PluginKey<SentenceState>("sentenceHighlights");
+
+function createHighlights(doc: Node, sentences: EvaluatedSentence[]) {
+  const decorations = sentences.flatMap(({ id, from, to, score }) =>
+    score === undefined
+      ? []
+      : [
+          Decoration.inline(from, to, {
+            "data-sentence-id": id,
+            "data-score": String(score),
+            class: "box-decoration-clone rounded-sm py-px mr-[3.5px] last:mr-0",
+            style: `background-color: var(--color-blue-${[50, 100, 200][score]})`,
+          }),
+        ],
+  );
+  return DecorationSet.create(doc, decorations);
+}
+
+export function getSentenceState(editor: Editor) {
+  return highlightsKey.getState(editor.state) as SentenceState;
+}
+
+export function setSentenceEvaluations(
   editor: Editor,
-  sentences: (Sentence & { score: number })[],
+  evaluations: SentenceEvaluation[],
 ) {
-  const decorations = sentences.map(({ id, from, to, score }) =>
-    Decoration.inline(from, to, {
-      "data-sentence-id": id,
-      "data-score": String(score),
-      class: "box-decoration-clone rounded-sm py-px mr-[3.5px] last:mr-0",
-      style: `background-color: var(--color-blue-${[50, 100, 200][score]})`,
-    }),
-  );
-  editor.view.dispatch(
-    editor.state.tr.setMeta(
-      highlightsKey,
-      DecorationSet.create(editor.state.doc, decorations),
-    ),
-  );
+  editor.view.dispatch(editor.state.tr.setMeta(highlightsKey, evaluations));
 }
 
 export const SentenceHighlights = Extension.create({
   name: "sentenceHighlights",
   addProseMirrorPlugins() {
     return [
-      new Plugin<DecorationSet>({
+      new Plugin<SentenceState>({
         key: highlightsKey,
         state: {
-          init: () => DecorationSet.empty,
-          apply(transaction, decorations) {
-            const highlights: DecorationSet | undefined =
+          init(_, state) {
+            return {
+              ...reconcileSentences([], getSentences(state.doc)),
+              decorations: DecorationSet.empty,
+            };
+          },
+          apply(transaction, previous) {
+            const evaluations: SentenceEvaluation[] | undefined =
               transaction.getMeta(highlightsKey);
-            return (
-              highlights ??
-              decorations.map(transaction.mapping, transaction.doc)
-            );
+            if (!transaction.docChanged && !evaluations) return previous;
+
+            let { sentences, changed } = transaction.docChanged
+              ? reconcileSentences(
+                  previous.sentences,
+                  getSentences(transaction.doc),
+                )
+              : previous;
+
+            if (evaluations) {
+              const byId = new Map(
+                evaluations.map((sentence) => [sentence.id, sentence]),
+              );
+              sentences = sentences.map((sentence) => {
+                const evaluation = byId.get(sentence.id);
+                return evaluation?.text === sentence.text
+                  ? {
+                      ...sentence,
+                      score: evaluation.score,
+                      evaluatedText: evaluation.text,
+                    }
+                  : sentence;
+              });
+            }
+
+            return {
+              sentences,
+              changed,
+              decorations: createHighlights(transaction.doc, sentences),
+            };
           },
         },
         props: {
           decorations(state) {
-            return highlightsKey.getState(state);
+            return highlightsKey.getState(state)?.decorations;
           },
         },
       }),
