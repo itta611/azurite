@@ -44,7 +44,7 @@ export function setSentenceHighlights(
     Decoration.inline(from, to, {
       "data-sentence-id": id,
       "data-score": String(score),
-      class: "box-decoration-clone rounded-sm py-px mr-[3px] last:mr-0",
+      class: "box-decoration-clone rounded-sm py-px mr-[3.5px] last:mr-0",
       style: `background-color: var(--color-blue-${[50, 100, 200][score]})`,
     }),
   );

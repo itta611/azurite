@@ -79,7 +79,7 @@ function App() {
     <main className="mx-auto w-190 flex flex-col pt-20 min-h-screen">
       <EditorContent
         editor={editor}
-        className="rounded-t-2xl bg-white shadow-2xl/3 grow text-lg leading-8"
+        className="rounded-t-2xl bg-white shadow-2xl/3 grow text-lg leading-7.5"
       />
     </main>
   );
