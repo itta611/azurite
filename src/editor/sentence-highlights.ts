@@ -5,16 +5,21 @@ import { Decoration, DecorationSet } from "@tiptap/pm/view";
 import {
   type EvaluatedSentence,
   reconcileSentences,
+  type Sentence,
 } from "./sentence-evaluations";
 
-export interface Sentence {
-  id: string;
-  text: string;
-  from: number;
-  to: number;
+type SentenceEvaluation = Pick<Sentence, "id" | "text"> & {
+  interpretability: number;
+  information: number;
+};
+
+interface EvaluationState {
+  sentences: EvaluatedSentence[];
+  changed: Sentence[];
+  decorations: DecorationSet;
 }
 
-export function getSentences(doc: Node) {
+function getSentences(doc: Node) {
   const sentences: Sentence[] = [];
   doc.descendants((node, position) => {
     if (!node.isTextblock) return;
@@ -38,37 +43,35 @@ export function getSentences(doc: Node) {
   return sentences;
 }
 
-type SentenceEvaluation = Pick<Sentence, "id" | "text"> & { score: number };
-
-interface SentenceState {
-  sentences: EvaluatedSentence[];
-  changed: Sentence[];
-  decorations: DecorationSet;
-}
-
-const highlightsKey = new PluginKey<SentenceState>("sentenceHighlights");
+const highlightsKey = new PluginKey<EvaluationState>("sentenceHighlights");
 
 function createHighlights(doc: Node, sentences: EvaluatedSentence[]) {
-  const decorations = sentences.flatMap(({ id, from, to, score }) =>
-    score === undefined
-      ? []
-      : [
-          Decoration.inline(from, to, {
-            "data-sentence-id": id,
-            "data-score": String(score),
-            class: "box-decoration-clone rounded-sm py-px mr-[3.5px] last:mr-0",
-            style: `background-color: var(--color-blue-${[50, 100, 200][score]})`,
-          }),
-        ],
+  const decorations = sentences.flatMap(
+    ({ id, from, to, interpretability, information }) => {
+      if (interpretability === undefined || information === undefined)
+        return [];
+      const hue = 205 + 50 * (1 - interpretability);
+      const lightness = 100 - 20 * information;
+      return [
+        Decoration.inline(from, to, {
+          "data-sentence-id": id,
+          "data-interpretability": String(interpretability),
+          "data-information": String(information),
+          class:
+            "box-decoration-clone rounded-sm py-px mr-[3.5px] last:mr-0 text-black",
+          style: `background-color: hsl(${hue} 100% ${lightness}%)`,
+        }),
+      ];
+    },
   );
   return DecorationSet.create(doc, decorations);
 }
 
-export function getSentenceState(editor: Editor) {
-  return highlightsKey.getState(editor.state) as SentenceState;
+export function getEvaluationState(editor: Editor) {
+  return highlightsKey.getState(editor.state) as EvaluationState;
 }
 
-export function setSentenceEvaluations(
+export function setEvaluations(
   editor: Editor,
   evaluations: SentenceEvaluation[],
 ) {
@@ -79,7 +82,7 @@ export const SentenceHighlights = Extension.create({
   name: "sentenceHighlights",
   addProseMirrorPlugins() {
     return [
-      new Plugin<SentenceState>({
+      new Plugin<EvaluationState>({
         key: highlightsKey,
         state: {
           init(_, state) {
@@ -99,7 +102,6 @@ export const SentenceHighlights = Extension.create({
                   getSentences(transaction.doc),
                 )
               : previous;
-
             if (evaluations) {
               const byId = new Map(
                 evaluations.map((sentence) => [sentence.id, sentence]),
@@ -109,13 +111,13 @@ export const SentenceHighlights = Extension.create({
                 return evaluation?.text === sentence.text
                   ? {
                       ...sentence,
-                      score: evaluation.score,
+                      interpretability: evaluation.interpretability,
+                      information: evaluation.information,
                       evaluatedText: evaluation.text,
                     }
                   : sentence;
               });
             }
-
             return {
               sentences,
               changed,
