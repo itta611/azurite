@@ -56,7 +56,7 @@ function App() {
         "aria-multiline": "true",
         role: "textbox",
         class:
-          "min-h-[calc(100vh-5rem)] whitespace-pre-wrap wrap-break-word p-16 pt-10 focus:outline-none",
+          "min-h-[calc(100dvh-2.5rem)] whitespace-pre-wrap wrap-break-word p-6 pt-8 focus:outline-none sm:min-h-[calc(100dvh-5rem)] sm:p-16 sm:pt-10",
       },
     },
     onCreate({ editor }) {
@@ -69,10 +69,10 @@ function App() {
   });
 
   return (
-    <main className="mx-auto w-190 flex flex-col pt-20 min-h-screen">
+    <main className="flex min-h-dvh flex-col px-4 pt-10 sm:px-6 sm:pt-20">
       <EditorContent
         editor={editor}
-        className="rounded-t-2xl bg-white shadow-2xl/3 grow text-lg leading-[28.5px]"
+        className="mx-auto w-full max-w-190 rounded-t-2xl bg-white shadow-2xl/3 grow text-lg leading-[28.5px]"
       />
     </main>
   );
